@@ -37,20 +37,23 @@ ActualPrice <- function(AccountType,Token,Instrument) {
     if(AccountType == "live"){
       httpaccount <- "https://api-fxtrade.oanda.com"
     } else print("Account type error. Must be practice or live")
-  
-  auth      <- c(Authorization = paste("Bearer",Token,sep=" "))
+  # Detect if there is more than one instrument
+  if (length(oandaPosition$instrument)>1){
+    Instrument <- paste(Instrument, collapse = '%2C')
+  }
+  #
+  auth <- c(Authorization = paste("Bearer",Token,sep=" "))
   Queryhttp <- paste(httpaccount,"/v1/prices?instruments=",sep="")
   QueryPrec <- paste(Queryhttp,Instrument,sep="")
-  InstPrec  <- getURL(QueryPrec,cainfo=system.file("CurlSSL","cacert.pem",
-                  package="RCurl"),httpheader=auth)
+  InstPrec  <- getURL(QueryPrec,cainfo=system.file("CurlSSL","cacert.pem", package="RCurl"),httpheader=auth)
   InstPrecjson <- fromJSON(InstPrec, simplifyDataFrame = TRUE)
-  DateTime  <- as.POSIXct(substr(InstPrecjson[[1]]$time,12,19),
-                  format = "%H:%M:%S")
+  DateTime  <- as.POSIXct(substr(InstPrecjson[[1]]$time,12,19), format = "%H:%M:%S")
   Date <- as.character(substr(DateTime,1,10))
   Time <- as.character(substr(DateTime,12,19))
-  DataJSON  <- data.frame(paste(Date,Time,sep=" "),InstPrecjson[[1]]$bid,
-                            InstPrecjson[[1]]$ask)
-  colnames(DataJSON) <- c("TimeStamp","Bid","Ask")
+  # Add an instrument column
+  DataJSON  <- data.frame(InstPrecjson[[1]]$instrument, paste(Date,Time,sep=" "),InstPrecjson[[1]]$bid, InstPrecjson[[1]]$ask)
+  # Add Instrument label
+  colnames(DataJSON) <- c("Instrument", "TimeStamp", "Bid", "Ask")
   DataJSON$TimeStamp <- as.POSIXct(DataJSON$TimeStamp,origin="1970-01-01")
   return(DataJSON)
 }
