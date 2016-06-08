@@ -325,15 +325,15 @@ OpenTrades  <- function(AccountType,AccountID,Token,Instrument) {
       httpaccount <- "https://api-fxtrade.oanda.com"
     } else print("Account type error. Must be practice or live")
   
-  auth      <- c(Authorization = paste("Bearer",Token,sep=" "))
+  auth <- c(Authorization = paste("Bearer",Token,sep=" "))
   Queryhttp <- paste(httpaccount,"/v1/accounts/",sep="")
   Querythttp1 <- paste(Queryhttp,AccountID,sep="")
   Querythttp2 <- paste(Querythttp1,"/trades?instrument=",sep="")
   Querythttp3 <- paste(Querythttp2,Instrument,sep="")
   Querythttp4 <- paste(Querythttp3,"&count=100",sep="")
-  QueryInst1  <- getURL(Querythttp4,cainfo=system.file("CurlSSL","cacert.pem",
-                  package="RCurl"),httpheader=auth)
+  QueryInst1  <- getURL(Querythttp4,cainfo=system.file("CurlSSL","cacert.pem", package="RCurl"),httpheader=auth)
   InstJson <- fromJSON(QueryInst1, simplifyDataFrame = TRUE)
+  InstJson$trades$time  <- as.POSIXct(paste(substr(InstJson$trades$time, 1, 10), substr(InstJson$trades$time, 12, 19), sep = " "), format = "%Y-%m-%d %H:%M:%S")
   return(InstJson)
 }
 
