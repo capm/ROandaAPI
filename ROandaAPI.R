@@ -97,6 +97,40 @@ HisPrices <- function(AccountType,Granularity,DayAlign,TimeAlign,
 }
 
 # -- ------------------------------------------------------------------------------ -- #
+# -- Historical Prices Request (specific time)  ---------------------------- -- #
+# -- ------------------------------------------------------------------------------ -- #
+
+HistPricesMod <- function(AccountType, Token, Instrument, CandleFormat, DateTimeStart) {
+  #
+  if (AccountType == "practice") {
+    httpaccount <- "https://api-fxpractice.oanda.com"
+  } else if (AccountType == "live") {
+    httpaccount <- "https://api-fxtrade.oanda.com"
+  } else print("Account type error. Must be practice or live")
+  #
+  
+  dateStart <- as.character(substr(DateTimeStart,1,10))
+  timeStart <- as.character(substr(DateTimeStart,12,19))
+  qstart <- paste("start=", dateStart, 'T', gsub(':', '%3A', timeStart), 'Z', sep = "")
+  #
+  if (CandleFormat==1) {CandleFormat <- 'midpoint'} else if (CandleFormat==2) {CandleFormat <- 'bidask'} else print('Candle format must be 1: midpoint or 2: bidask.')
+  qcandleFormat <- paste("candleFormat=", CandleFormat, sep = "")
+  #
+  auth <- c(Authorization = paste("Bearer", Token, sep = " "))
+  QueryHistPrec <- paste(httpaccount, "/v1/candles?instrument=", sep = "")
+  QueryHistPrec1 <- paste(QueryHistPrec, Instrument, sep = "")
+  QueryHistPrec2 <- paste(QueryHistPrec1, 'count=1', qstart, qcandleFormat, sep = "&")
+  #
+  InstHistP <- getURL(QueryHistPrec2, cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl"), httpheader = auth)
+  InstHistPjson <- fromJSON(InstHistP, simplifyDataFrame = TRUE)
+  Prices <- data.frame(InstHistPjson[[1]] , InstHistPjson[[3]])
+  Prices$time <- paste(substr(Prices$time, 1, 10), substr(Prices$time, 12, 19), sep = " ")
+  Prices <- Prices[, which(names(Prices) %in% c("InstHistPjson..1..", "time", "closeBid", "closeAsk"))]
+  names(Prices) <- c("Instrument", "Timestamp", "Bid", "Ask")
+  return(Prices)
+}
+
+# -- ------------------------------------------------------------------------------ -- #
 # -- Accounts per given username  ------------------------------------------------- -- #
 # -- ------------------------------------------------------------------------------ -- #
 
